@@ -138,7 +138,7 @@ function network_up() {
   launch_ECert_CAs
   enroll_bootstrap_ECert_CA_users
 
-  # Test Network
+  # Network
   create_local_MSP
 
   launch_orderers

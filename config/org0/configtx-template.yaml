@@ -313,7 +313,7 @@ Channel: &ChannelDefaults
 ################################################################################
 Profiles:
 
-  # test network profile with application (not system) channel.
+  # network profile with application (not system) channel.
   TwoOrgsApplicationGenesis:
     <<: *ChannelDefaults
     Orderer:
@@ -334,7 +334,7 @@ Profiles:
   # TwoOrgsOrdererGenesis will construct a system channel as it has a Consortiums stanza, which is not
   # compatible with osnadmin.
   #
-  # @enyeart - which profile should be used for the kube test network?
+  # @enyeart - which profile should be used for the kube network
   #
   TwoOrgsOrdererGenesis:
     <<: *ChannelDefaults

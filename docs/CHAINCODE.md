@@ -1,7 +1,7 @@
 # Working with Chaincode 
 
-In this guide we will launch the Asset Transfer Basic chaincode "as a service" on the Kubernetes test network.
-In addition, we will demonstrate how to connect the test network to a chaincode process running on your local 
+In this guide we will launch the Asset Transfer Basic chaincode "as a service" on the Kubernetes network.
+In addition, we will demonstrate how to connect the network to a chaincode process running on your local 
 machine as a local binary, attached in an IDE debugger, or in a Docker container. 
 
 ## TL/DR : 
@@ -36,7 +36,7 @@ $ ./network chaincode query asset-transfer-basic '{"Args":["ReadAsset","1"]}' | 
 
 ## Running Smart Contracts on Kubernetes 
 
-In the Kubernetes Test Network, smart contracts are developed with the [Chaincode as a Service](https://hyperledger-fabric.readthedocs.io/en/latest/cc_service.html)
+In the Kubernetes Network, smart contracts are developed with the [Chaincode as a Service](https://hyperledger-fabric.readthedocs.io/en/latest/cc_service.html)
 pattern, relying on an embedded [External Builder](https://hyperledger-fabric.readthedocs.io/en/latest/cc_launcher.html) to avoid the use of a Docker daemon. With 
 Chaincode-as-a-Service, smart contracts are deployed to Kubernetes as `Services`,
 `Deployments`, and `Pods`.  When invoking smart contracts, the Peer network connects to the grpc receiver
@@ -88,7 +88,7 @@ To deploy the chaincode, the network script will:
 3. In typical Fabric operations, the output of the `chaincode install` command includes a generated ID of the 
    chaincode archive printed to standard out.  This ID is manually inspected and transcribed by the 
    network operator when executing subsequent commands with the network peers.  To avoid scraping the 
-   output of the installation command, the test network scripts precompute the chaincode ID 
+   output of the installation command, the network scripts precompute the chaincode ID 
    as the `sha256` checksum of the tar.gz archive. 
 
 
@@ -168,7 +168,7 @@ Before chaincode can be started in the network, it must be compiled, linked with
 embedded into a Docker image, and pushed to a container registry visible to the Kubernetes cluster.
 
 By default, the `./network` script will launch the [asset-transfer-basic](../../asset-transfer-basic/chaincode-external)
-chaincode.  When the test network installs this chaincode, there is no need to build a custom Docker image as it
+chaincode.  When the network installs this chaincode, there is no need to build a custom Docker image as it
 has previously been uploaded to a public container registry.
 
 As an exercise, we recommend making some updates to the asset transfer basic chaincode and then running the
@@ -188,7 +188,7 @@ image to the local development container registry.
 docker build -t asset-transfer-basic ../asset-transfer-basic/chaincode-external 
 ```
 
-3. Override the test network's default chaincode image, pointing to our local container registry: 
+3. Override the network's default chaincode image, pointing to our local container registry: 
 ```shell
 export NETWORK_CHAINCODE_IMAGE=localhost:5000/asset-transfer-basic
 ```

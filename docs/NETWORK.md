@@ -34,8 +34,8 @@ The key steps in this process are:
 - [Registering and enrolling identities with a CA](https://hyperledger-fabric-ca.readthedocs.io/en/latest/deployguide/use_CA.html#registering-and-enrolling-identities-with-a-ca)
 - [Create the local MSP of a node](https://hyperledger-fabric-ca.readthedocs.io/en/latest/deployguide/use_CA.html#create-the-local-msp-of-a-node)
 
-In the test network, each organization includes a function that wraps the registration, enrollment, and MSP aggregation
-into a series of fabric-ca-client calls.  [The script](../scripts/test_network.sh) will be executed directly on the
+In the network, each organization includes a function that wraps the registration, enrollment, and MSP aggregation
+into a series of fabric-ca-client calls.  [The script](../scripts/create_network.sh) will be executed directly on the
 org's ECert CA pod, with access to the persistent volume for storage of the MSP and TLS certificates.  While this is
 largely boilerplate scripting, the process is straightforward:  For each node in the network, we'll use the CAs to
 generate TLS+MSP certificates, bundling into an MSP with a `config.yaml` specifying the fabric roles associated with
@@ -94,7 +94,7 @@ Running Fabric in Kubernetes places some unique constraints on the Chaincode lif
   step back and _keep it simple_.
 
 
-In the Kubernetes Test Network, we've incorporated the default `ccaas` external builder
+In the Kubernetes Network, we've incorporated the default `ccaas` external builder
 (See [fabric #2884](https://github.com/hyperledger/fabric/issues/2884)) as an accelerator for working with
 Chaincode-as-a-Service on Kubernetes.  For `ccaas` smart contracts, when chaincode is installed on a peer, the
 external builder binaries will be invoked, bypassing the reliance on a local Docker daemon running in Kubernetes.
@@ -117,7 +117,7 @@ To trigger the external builder for a chaincode service, set the metadata.json `
 }
 ```
 
-- [x] Pro tip: Use the companion container registry at `localhost:5000` to deploy custom chaincode into the test network.
+- [x] Pro tip: Use the companion container registry at `localhost:5000` to deploy custom chaincode into the  network.
 - [x] Pro tip: Deploy a chaincode with `address: host.docker.internal:9999` and attach your chaincode in a debugger.
 
 

@@ -26,14 +26,10 @@ function delete_namespace() {
 function init_storage_volumes() {
   push_fn "Provisioning volume storage"
 
-  # Both KIND and k3s use the Rancher local-path provider.  In KIND, this is installed
+  # KIND use the Rancher local-path provider.  In KIND, this is installed
   # as the 'standard' storage class, and in Rancher as the 'local-path' storage class.
   if [ "${CLUSTER_RUNTIME}" == "kind" ]; then
     export STORAGE_CLASS="standard"
-
-  elif [ "${CLUSTER_RUNTIME}" == "k3s" ]; then
-    export STORAGE_CLASS="local-path"
-
   else
     echo "Unknown CLUSTER_RUNTIME ${CLUSTER_RUNTIME}"
     exit 1

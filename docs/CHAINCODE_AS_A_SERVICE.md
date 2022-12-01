@@ -1,6 +1,6 @@
 # Debugging Chaincode
 
-In this sample we will employ the [Kubernetes Test Network](../README.md) to illustrate a scenario of
+In this sample we will employ the [Kubernetes Network](../README.md) to illustrate a scenario of
 building, running, and debugging chaincode on a development workstation.
 
 While this guide targets the Java [asset-transfer-basic](../../asset-transfer-basic/chaincode-java) sample, the approach 

@@ -1,6 +1,6 @@
 # Kubernetes
 
-To get started with the Kube test network, you will need access to a Kubernetes cluster.
+To get started with the Kube network, you will need access to a Kubernetes cluster.
 
 ## TL/DR :
 
@@ -70,44 +70,10 @@ or:
 $ kind delete cluster
 ```
 
-## Rancher Desktop and k3s 
+## Network Structure
 
-In addition to KIND, the Kube Test Network runs on the k3s Kubernetes provided by [Rancher Desktop](https://rancherdesktop.io). 
-
-To run natively on k3s, skip the creation of a KIND cluster and:
-
-1. In Rancher's Kubernetes Settings:
-   1. Disable Traefik
-   2. Select the dockerd (moby) container runtime 
-   3. Increase Memory allocation to 8 GRAM 
-   4. Increase CPU allocation to 8 CPU 
-
-2. Reset Kubernetes 
-
-3. Initialize the Nginx ingress and cert-manager: 
-
-```shell
-export NETWORK_CLUSTER_RUNTIME="k3s"
-
-./network cluster init
-```
-- containerd is also a viable runtime.  When building images for chaincode-as-a-service, the `--namespace k8s.io` 
-  argument must be applied to the `nerdctl` CLI.  
-
-- For use with containerd: 
-```shell
-export NETWORK_CLUSTER_RUNTIME="k3s"
-export NETWORK_CONTAINER_NAMESPACE="--namespace k8s.io"
-export CONTAINER_CLI="nerdctl"
-
-./network cluster init
-```
-
-
-## Test Network Structure
-
-To emulate a more realistic example of multi-party collaboration, the test network
-forms a blockchain consensus group spanning three virtual organizations.  Network I/O between the 
+To emulate a more realistic example of multi-party collaboration, the network
+forms a blockchain consensus group spanning two virtual organizations.  Network I/O between the 
 blockchain nodes is entirely constrained to Kubernetes private networks, and consuming applications
 make use of a Kubernetes / Nginx ingress controller for external visibility.
 
@@ -121,7 +87,7 @@ In k8s terms:
   patterns, running in the cluster as Kube `Deployments` with companion `Services`.
 - An HTTP(s) `Ingress` and companion gateway application is required for external access to the blockchain.
 
-When running the test network locally, the `./network kind` bootstrap will configure the system with
+When running the network locally, the `./network kind` bootstrap will configure the system with
 an [Nginx ingress controller](link), a private [Container Registry](link), and persistent volumes / claims for
 host-local organization storage.
 
@@ -146,7 +112,7 @@ kubectl -n $NS create -f kube/pvc-fabric-org1.yaml
 ## Container Registry
 
 The [kube yaml descriptors](../kube) generally rely on the public Fabric images maintained at the public
-Docker and GitHub container registries.  For casual usage, the test network will bootstrap and launch CAs,
+Docker and GitHub container registries.  For casual usage, the network will bootstrap and launch CAs,
 peers, orderers, chaincode, and sample applications without any additional configuration.
 
 While public images are made available for pre-canned samples, there will undoubtedly be cases
@@ -241,17 +207,17 @@ curl -s --insecure https://org0-ca.lvh.me/cainfo | jq
 
 ## Cloud Vendors
 
-While the test network primarily targets KIND clusters, the singular reliance on the Kube API plane
+While the network primarily targets KIND clusters, the singular reliance on the Kube API plane
 means that it should also work without modification on any modern cloud-based or bare metal
 Kubernetes distribution.  While supporting the entire ecosystem of cloud vendors is not in scope
 for this sample project, we'd love to hear feedback, success stories, or bugs related to applying the
-test network to additional platforms.
+network to additional platforms.
 
-In general, at a high-level the steps required to port the test network to ANY kube vendor are:
+In general, at a high-level the steps required to port the network to ANY kube vendor are:
 
 - Configure an HTTP `Ingress` for access to any gateway, REST, or companion blockchain applications.
-- Register `PersistentVolumeClaims` for each of the organizations in the test network.
-- Create a `Namespace` for each instance of the test network.
+- Register `PersistentVolumeClaims` for each of the organizations in the network.
+- Create a `Namespace` for each instance of the network.
 - Upload your chaincode, gateway clients, and application logic to an external Container Registry.
 - Run with a `ServiceAccount` and role bindings suitable for creating `Pods`, `Deployments`, and `Services`.
 

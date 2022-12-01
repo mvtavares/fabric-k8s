@@ -93,14 +93,9 @@ function prepare_chaincode_image() {
 
   build_chaincode_image ${cc_folder} ${cc_name}
 
-  if [ "${CLUSTER_RUNTIME}" == "k3s" ]; then
-    # For rancher / k3s runtimes, bypass the local container registry and load images directly from the image cache.
-    export CHAINCODE_IMAGE=${cc_name}
-  else
-    # For KIND and k8s-builder environments, publish the image to a local docker registry
-    export CHAINCODE_IMAGE=localhost:${LOCAL_REGISTRY_PORT}/${cc_name}
-    publish_chaincode_image ${cc_name} ${CHAINCODE_IMAGE}
-  fi
+  # For KIND and k8s-builder environments, publish the image to a local docker registry
+  export CHAINCODE_IMAGE=localhost:${LOCAL_REGISTRY_PORT}/${cc_name}
+  publish_chaincode_image ${cc_name} ${CHAINCODE_IMAGE}
 }
 
 function build_chaincode_image() {

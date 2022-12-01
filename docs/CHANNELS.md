@@ -1,7 +1,7 @@
 # Channels 
 
-Once the test network peers and orderers have been started, and the network identities have been registered 
-and enrolled with the ECert CA, we can construct a channel linking the participants of the test network 
+Once the network peers and orderers have been started, and the network identities have been registered 
+and enrolled with the ECert CA, we can construct a channel linking the participants of the network 
 blockchain. 
 
 ## TL/DR : 
@@ -43,12 +43,12 @@ In order to construct a Fabric channel, the following steps must be performed:
 ```
 
 One of the responsibilities of a Hyperledger Fabric _Consortium Organizer_ is to distribute the public MSP and 
-TLS certificates to organizations participating in a blockchain.  In the Docker composed based test network, or 
+TLS certificates to organizations participating in a blockchain.  In the Docker composed based network, or 
 systems bootstrapped with the `cryptogen` command, all of the public certificates will be available on a common 
-file system or volume share.  In our Kubernetes test network, each organization maintains the cryptographic 
+file system or volume share.  In our Kubernetes network, each organization maintains the cryptographic 
 assets on a distinct persistent volume, invisible to other the other participants in the network.
 
-To distribute the TLS and MSP _public_ certificates, the test network emulates the responsibilities of the 
+To distribute the TLS and MSP _public_ certificates, the network emulates the responsibilities of the 
 consortium organizer by constructing a [Channel MSP](https://hyperledger-fabric.readthedocs.io/en/latest/membership/membership.html#channel-msps) 
 structure, extracting the relevant certificate files into a local folder before constructing the channel 
 genesis block.  The `configtx.yaml` specifies the channel root folder as the consortium org's (org0) `MSPDir`
@@ -120,12 +120,12 @@ $ ./network anchor peer2
 ✅ - Updating anchor peers to "peer2" ... 
 ```
 
-In the test network, the configtx.yaml sets the organization [Anchor Peers](https://hyperledger-fabric.readthedocs.io/en/latest/glossary.html?highlight=anchor#anchor-peer)
+In the network, the configtx.yaml sets the organization [Anchor Peers](https://hyperledger-fabric.readthedocs.io/en/latest/glossary.html?highlight=anchor#anchor-peer)
 to "peer1" in the genesis block.  As such, no additional configuration is necessary for neighboring 
 organizations to discover additional peers in the network.
 
 However, the process of setting the anchor peers on a channel requires a more complicated scripting process, so we 
-have included in the test network a mechanism to illustrate how anchor peers may be set on a network after a 
+have included in the network a mechanism to illustrate how anchor peers may be set on a network after a 
 channel has been constructed.
 
 Up to this point in the network configuration, the shell scripts orchestrating the remote volumes, peers, and 
