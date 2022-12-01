@@ -68,7 +68,7 @@ function create_node_local_MSP() {
   fabric-ca-client enroll \
     --url https://${id_name}:${id_secret}@${ca_name} \
     --csr.hosts ${csr_hosts} \
-    --mspdir /var/hyperledger/fabric/organizations/${node_type}Organizations/${org}.example.com/${node_type}s/${id_name}.${org}.example.com/msp
+    --mspdir /var/hyperledger/fabric/organizations/${node_type}Organizations/${org}.liberty.com.br/${node_type}s/${id_name}.${org}.liberty.com.br/msp
 
   # Create local MSP config.yaml
   echo "NodeOUs:
@@ -84,7 +84,7 @@ function create_node_local_MSP() {
       OrganizationalUnitIdentifier: admin
     OrdererOUIdentifier:
       Certificate: cacerts/${org}-ca.pem
-      OrganizationalUnitIdentifier: orderer" > /var/hyperledger/fabric/organizations/${node_type}Organizations/${org}.example.com/${node_type}s/${id_name}.${org}.example.com/msp/config.yaml
+      OrganizationalUnitIdentifier: orderer" > /var/hyperledger/fabric/organizations/${node_type}Organizations/${org}.liberty.com.br/${node_type}s/${id_name}.${org}.liberty.com.br/msp/config.yaml
 EOF
 }
 

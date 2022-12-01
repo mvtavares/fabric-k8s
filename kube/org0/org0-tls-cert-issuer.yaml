@@ -13,7 +13,7 @@ spec:
   privateKey:
     algorithm: ECDSA
     size: 256
-  commonName: org0.example.com
+  commonName: org0.liberty.com.br
   secretName: org0-tls-cert-issuer-secret
   issuerRef:
     name: root-tls-cert-issuer
