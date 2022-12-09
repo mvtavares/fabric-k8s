@@ -93,8 +93,13 @@ function prepare_chaincode_image() {
 
   build_chaincode_image ${cc_folder} ${cc_name}
 
-  # For KIND and k8s-builder environments, publish the image to a local docker registry
-  export CHAINCODE_IMAGE=localhost:${LOCAL_REGISTRY_PORT}/${cc_name}
+  # For KIND environment, publish the image to a local docker registry
+  if [ "${CLUSTER_RUNTIME}" == "k8s" ]; then
+    export CHAINCODE_IMAGE=${REMOTE_REGISTRY_NAME}/${cc_name}
+  else 
+    export CHAINCODE_IMAGE=localhost:${LOCAL_REGISTRY_PORT}/${cc_name}
+  fi
+
   publish_chaincode_image ${cc_name} ${CHAINCODE_IMAGE}
 }
 
@@ -145,10 +150,18 @@ function query_chaincode() {
 
   export_peer_context org1 peer1
 
+  if [ "${CLUSTER_RUNTIME}" == "k8s" ]; then
+    kubectl -n ${NS} port-forward deployment/org1-peer1 7051:7051 > /dev/null 2>&1 &
+    sleep 5
+  fi
+
   peer chaincode query \
     -n  $cc_name \
     -C  $CHANNEL_NAME \
     -c  $@
+  sleep 5
+  pkill -f "port-forward"
+  sleep 5
 }
 
 function query_chaincode_metadata() {
@@ -161,12 +174,27 @@ function query_chaincode_metadata() {
   log ''
   log 'Org1-Peer1:'
   export_peer_context org1 peer1
-  peer chaincode query -n $cc_name -C $CHANNEL_NAME -c $args
+  if [ "${CLUSTER_RUNTIME}" == "k8s" ]; then
+    kubectl -n ${NS} port-forward deployment/org1-peer1 7051:7051 > /dev/null 2>&1 &
+    sleep 5
+  fi
 
+  peer chaincode query -n $cc_name -C $CHANNEL_NAME -c $args
+  sleep 5
+  pkill -f "port-forward"
+  sleep 5
   log ''
   log 'Org1-Peer2:'
   export_peer_context org1 peer2
+  if [ "${CLUSTER_RUNTIME}" == "k8s" ]; then
+    kubectl -n ${NS} port-forward deployment/org1-peer2 7051:7051 > /dev/null 2>&1 &
+    sleep 5
+  fi
+
   peer chaincode query -n $cc_name -C $CHANNEL_NAME -c $args
+  sleep 5
+  pkill -f "port-forward"
+  sleep 5
 }
 
 function invoke_chaincode() {
@@ -175,14 +203,27 @@ function invoke_chaincode() {
 
   export_peer_context org1 peer1
 
-  peer chaincode invoke \
-    -n              $cc_name \
-    -C              $CHANNEL_NAME \
-    -c              $@ \
-    --orderer       org0-orderer1.${DOMAIN}:${NGINX_HTTPS_PORT} \
-    --connTimeout   ${ORDERER_TIMEOUT} \
-    --tls --cafile  ${TEMP_DIR}/channel-msp/ordererOrganizations/org0/orderers/org0-orderer1/tls/signcerts/tls-cert.pem
-
+  if [ "${CLUSTER_RUNTIME}" == "k8s" ]; then
+    kubectl -n ${NS} port-forward deployment/org1-peer1 7051:7051 > /dev/null 2>&1 &
+    kubectl -n ${NS} port-forward deployment/org0-orderer1 8443:6050 > /dev/null 2>&1 & \
+      sleep 10 &&  peer chaincode invoke \
+      -n              $cc_name \
+      -C              $CHANNEL_NAME \
+      -c              $@ \
+      --orderer       localhost:8443 \
+      --connTimeout   ${ORDERER_TIMEOUT} \
+      --tls --cafile  ${TEMP_DIR}/channel-msp/ordererOrganizations/org0/orderers/org0-orderer1/tls/signcerts/tls-cert.pem
+    sleep 5
+    pkill -f "port-forward"
+  else 
+    peer chaincode invoke \
+      -n              $cc_name \
+      -C              $CHANNEL_NAME \
+      -c              $@ \
+      --orderer       org0-orderer1.${DOMAIN}:${NGINX_HTTPS_PORT} \
+      --connTimeout   ${ORDERER_TIMEOUT} \
+      --tls --cafile  ${TEMP_DIR}/channel-msp/ordererOrganizations/org0/orderers/org0-orderer1/tls/signcerts/tls-cert.pem
+  fi 
   sleep 2
 }
 
@@ -319,8 +360,14 @@ function install_chaincode_for() {
 
   export_peer_context $org $peer
 
+  if [ "${CLUSTER_RUNTIME}" == "k8s" ]; then
+    kubectl -n ${NS} port-forward deployment/$org-$peer 7051:7051 > /dev/null 2>&1 &
+    sleep 5
+  fi
   peer lifecycle chaincode install $cc_package
-
+  sleep 5
+  pkill -f "port-forward"
+  sleep 5
   pop_fn
 }
 
@@ -343,17 +390,33 @@ function approve_chaincode() {
 
   export_peer_context $org $peer
 
-  peer lifecycle \
-    chaincode approveformyorg \
-    --channelID     ${CHANNEL_NAME} \
-    --name          ${cc_name} \
-    --version       1 \
-    --package-id    ${cc_id} \
-    --sequence      1 \
-    --orderer       org0-orderer1.${DOMAIN}:${NGINX_HTTPS_PORT} \
-    --connTimeout   ${ORDERER_TIMEOUT} \
-    --tls --cafile  ${TEMP_DIR}/channel-msp/ordererOrganizations/org0/orderers/org0-orderer1/tls/signcerts/tls-cert.pem
-
+  if [ "${CLUSTER_RUNTIME}" == "k8s" ]; then
+    kubectl -n ${NS} port-forward deployment/$org-$peer 7051:7051 > /dev/null 2>&1 &
+    kubectl -n ${NS} port-forward deployment/org0-orderer1 8443:6050 > /dev/null 2>&1 & \
+      sleep 10 && peer lifecycle chaincode approveformyorg \
+      --channelID     ${CHANNEL_NAME} \
+      --name          ${cc_name} \
+      --version       1 \
+      --package-id    ${cc_id} \
+      --sequence      1 \
+      --orderer       localhost:8443 \
+      --connTimeout   ${ORDERER_TIMEOUT} \
+      --tls --cafile  ${TEMP_DIR}/channel-msp/ordererOrganizations/org0/orderers/org0-orderer1/tls/signcerts/tls-cert.pem
+    sleep 5
+    pkill -f "port-forward"
+    sleep 5
+  else 
+    peer lifecycle \
+      chaincode approveformyorg \
+      --channelID     ${CHANNEL_NAME} \
+      --name          ${cc_name} \
+      --version       1 \
+      --package-id    ${cc_id} \
+      --sequence      1 \
+      --orderer       org0-orderer1.${DOMAIN}:${NGINX_HTTPS_PORT} \
+      --connTimeout   ${ORDERER_TIMEOUT} \
+      --tls --cafile  ${TEMP_DIR}/channel-msp/ordererOrganizations/org0/orderers/org0-orderer1/tls/signcerts/tls-cert.pem
+   fi
   pop_fn
 }
 
@@ -366,16 +429,30 @@ function commit_chaincode() {
 
   export_peer_context $org $peer
 
-  peer lifecycle \
-    chaincode commit \
+  if [ "${CLUSTER_RUNTIME}" == "k8s" ]; then
+    kubectl -n ${NS} port-forward deployment/$org-$peer 7051:7051 > /dev/null 2>&1 &
+    kubectl -n ${NS} port-forward deployment/org0-orderer1 8443:6050 > /dev/null 2>&1 & \
+      sleep 10 && peer lifecycle chaincode commit \
     --channelID     ${CHANNEL_NAME} \
     --name          ${cc_name} \
     --version       1 \
     --sequence      1 \
-    --orderer       org0-orderer1.${DOMAIN}:${NGINX_HTTPS_PORT} \
+    --orderer       localhost:8443 \
     --connTimeout   ${ORDERER_TIMEOUT} \
     --tls --cafile  ${TEMP_DIR}/channel-msp/ordererOrganizations/org0/orderers/org0-orderer1/tls/signcerts/tls-cert.pem
-
+    sleep 5
+    pkill -f "port-forward"
+  else 
+    peer lifecycle \
+      chaincode commit \
+      --channelID     ${CHANNEL_NAME} \
+      --name          ${cc_name} \
+      --version       1 \
+      --sequence      1 \
+      --orderer       org0-orderer1.${DOMAIN}:${NGINX_HTTPS_PORT} \
+      --connTimeout   ${ORDERER_TIMEOUT} \
+      --tls --cafile  ${TEMP_DIR}/channel-msp/ordererOrganizations/org0/orderers/org0-orderer1/tls/signcerts/tls-cert.pem
+  fi
   pop_fn
 }
 

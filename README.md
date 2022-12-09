@@ -30,13 +30,24 @@ Instalar Ingress Controller & Cert Manager
 ./network cluster init
 ```
 
-Iniciar a rede, criar um canal e implantar o [basic-asset-transfer](../asset-transfer-basic) smart contract: 
+Iniciar a rede, criar um canal e 
 
 ```shell
 ./network up
 
 ./network channel create
+```
 
+Para fazer o deploy do chaincode, é necessário publicar a imagem para algum registry e apontar a URL.
+O valor default está apontando para ghcr.io/mvtavares mas pode ser alterado exportando o comando abaixo:
+
+```shell
+  export NETWORK_REMOTE_REGISTRY_NAME=ghcr.io/xxxx
+```
+
+Implantar o [basic-asset-transfer](../asset-transfer-basic) smart contract (chaincode):
+
+```shell
 ./network chaincode deploy asset-transfer-basic ./chaincode
 ```
 
