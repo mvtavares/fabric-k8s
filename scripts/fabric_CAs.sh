@@ -58,10 +58,22 @@ function enroll_bootstrap_ECert_CA_user() {
     > ${CA_DIR}/tlsca-cert.pem
 
   # Enroll the root CA user
-  fabric-ca-client enroll \
-    --url https://${RCAADMIN_USER}:${RCAADMIN_PASS}@${CA_NAME}.${DOMAIN}:${NGINX_HTTPS_PORT} \
-    --tls.certfiles $TEMP_DIR/cas/${CA_NAME}/tlsca-cert.pem \
-    --mspdir $TEMP_DIR/enrollments/${org}/users/${RCAADMIN_USER}/msp
+  if [ "${CLUSTER_RUNTIME}" == "k8s" ]; then
+    echo "establishing port-forward to ${CA_NAME}"
+    kubectl -n ${NS} port-forward deployment/${CA_NAME} 8443:443 > /dev/null 2>&1 & \
+    sleep 10 && fabric-ca-client enroll \
+      --url https://${RCAADMIN_USER}:${RCAADMIN_PASS}@localhost:8443 \
+      --tls.certfiles $TEMP_DIR/cas/${CA_NAME}/tlsca-cert.pem \
+      --mspdir $TEMP_DIR/enrollments/${org}/users/${RCAADMIN_USER}/msp
+    sleep 5
+    echo "killing port-forward to ${CA_NAME}"
+    pkill -f "port-forward"
+  else 
+    fabric-ca-client enroll \
+      --url https://${RCAADMIN_USER}:${RCAADMIN_PASS}@${CA_NAME}.${DOMAIN}:${NGINX_HTTPS_PORT} \
+      --tls.certfiles $TEMP_DIR/cas/${CA_NAME}/tlsca-cert.pem \
+      --mspdir $TEMP_DIR/enrollments/${org}/users/${RCAADMIN_USER}/msp
+  fi
 }
 
 function enroll_bootstrap_ECert_CA_users() {

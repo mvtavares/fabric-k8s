@@ -44,14 +44,31 @@ function create_node_local_MSP() {
 
   # Register the node admin
   rc=0
-  fabric-ca-client  register \
-    --id.name       ${id_name} \
-    --id.secret     ${id_secret} \
-    --id.type       ${node_type} \
-    --url           https://${ca_name}.${DOMAIN} \
-    --tls.certfiles $TEMP_DIR/cas/${ca_name}/tlsca-cert.pem \
-    --mspdir        $TEMP_DIR/enrollments/${org}/users/${RCAADMIN_USER}/msp \
-    || rc=$?        # trap error code from registration without exiting the network driver script"
+
+  if [ "${CLUSTER_RUNTIME}" == "k8s" ]; then
+    echo "Establishing port-forward to ${ca_name}"
+    kubectl -n ${NS} port-forward deployment/${ca_name} 8443:443 > /dev/null 2>&1 & \
+      sleep 10 && fabric-ca-client register \
+        --id.name       ${id_name} \
+        --id.secret     ${id_secret} \
+        --id.type       ${node_type} \
+        --url           https://localhost:8443 \
+        --tls.certfiles $TEMP_DIR/cas/${ca_name}/tlsca-cert.pem \
+        --mspdir        $TEMP_DIR/enrollments/${org}/users/${RCAADMIN_USER}/msp \
+        || rc=$?        # trap error code from registration without exiting the network driver script"
+    sleep 5
+    pkill -f "port-forward"
+    echo "Killing port-forward to ${ca_name}"
+  else 
+    fabric-ca-client  register \
+      --id.name       ${id_name} \
+      --id.secret     ${id_secret} \
+      --id.type       ${node_type} \
+      --url           https://${ca_name}.${DOMAIN} \
+      --tls.certfiles $TEMP_DIR/cas/${ca_name}/tlsca-cert.pem \
+      --mspdir        $TEMP_DIR/enrollments/${org}/users/${RCAADMIN_USER}/msp \
+      || rc=$?        # trap error code from registration without exiting the network driver script"
+  fi
 
   if [ $rc -eq 1 ]; then
     echo "CA admin was (probably) previously registered - continuing"
@@ -189,7 +206,7 @@ function network_down() {
   set -e
 
   stop_services
-  scrub_org_volumes
+  #scrub_org_volumes
 
   delete_namespace
 

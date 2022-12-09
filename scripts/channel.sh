@@ -51,16 +51,33 @@ function register_org_admin() {
   local id_secret=$3
   local ca_name=${org}-ca
 
-  echo "Registering org admin $username"
+  echo "Registering org admin ${id_name}"
 
-  fabric-ca-client  register \
-    --id.name       ${id_name} \
-    --id.secret     ${id_secret} \
-    --id.type       ${type} \
-    --url           https://${ca_name}.${DOMAIN} \
-    --tls.certfiles $TEMP_DIR/cas/${ca_name}/tlsca-cert.pem \
-    --mspdir        $TEMP_DIR/enrollments/${org}/users/${RCAADMIN_USER}/msp \
-    --id.attrs      "hf.Registrar.Roles=client,hf.Registrar.Attributes=*,hf.Revoker=true,hf.GenCRL=true,admin=true:ecert,abac.init=true:ecert"
+  if [ "${CLUSTER_RUNTIME}" == "k8s" ]; then
+    echo "Creating port-forward register_org_admin to ${ca_name}"
+    kubectl -n ${NS} port-forward deployment/${ca_name} 8443:443 > /dev/null 2>&1 & \
+      sleep 10 && fabric-ca-client register \
+        --id.name       ${id_name} \
+        --id.secret     ${id_secret} \
+        --id.type       ${type} \
+        --url           https://localhost:8443 \
+        --tls.certfiles $TEMP_DIR/cas/${ca_name}/tlsca-cert.pem \
+        --mspdir        $TEMP_DIR/enrollments/${org}/users/${RCAADMIN_USER}/msp \
+        --id.attrs      "hf.Registrar.Roles=client,hf.Registrar.Attributes=*,hf.Revoker=true,hf.GenCRL=true,admin=true:ecert,abac.init=true:ecert"
+    sleep 5
+    pkill -f "port-forward"
+    echo "Killed port-forward register_org_admin to ${ca_name}"
+    sleep 5
+  else 
+    fabric-ca-client  register \
+      --id.name       ${id_name} \
+      --id.secret     ${id_secret} \
+      --id.type       ${type} \
+      --url           https://${ca_name}.${DOMAIN} \
+      --tls.certfiles $TEMP_DIR/cas/${ca_name}/tlsca-cert.pem \
+      --mspdir        $TEMP_DIR/enrollments/${org}/users/${RCAADMIN_USER}/msp \
+      --id.attrs      "hf.Registrar.Roles=client,hf.Registrar.Attributes=*,hf.Revoker=true,hf.GenCRL=true,admin=true:ecert,abac.init=true:ecert"
+  fi
 }
 
 function enroll_org_admins() {
@@ -100,13 +117,29 @@ function enroll_org_admin() {
   CA_URL=https://${CA_AUTH}@${CA_HOST}:${CA_PORT}
 
   # enroll the org admin
-  FABRIC_CA_CLIENT_HOME=${ORG_ADMIN_DIR} fabric-ca-client enroll \
-    --url ${CA_URL} \
-    --tls.certfiles ${CA_DIR}/tlsca-cert.pem
+  export FABRIC_CA_CLIENT_HOME=${ORG_ADMIN_DIR} 
+  
+  if [ "${CLUSTER_RUNTIME}" == "k8s" ]; then
+    echo "Creating port-forward enroll_org_admin to ${CA_NAME}"
+    kubectl -n ${NS} port-forward deployment/${CA_NAME} 8443:443 > /dev/null 2>&1 & \
+      sleep 5 && fabric-ca-client enroll \
+        --url https://${CA_AUTH}@localhost:8443 \
+        --tls.certfiles ${CA_DIR}/tlsca-cert.pem 
+    sleep 10
+    pkill -f "port-forward"
+    echo "Killed port-forward enroll_org_admin to ${CA_NAME}"
+  else
+    fabric-ca-client enroll \
+      --url ${CA_URL} \
+      --tls.certfiles ${CA_DIR}/tlsca-cert.pem
+  fi
 
   # Construct an msp config.yaml
-  CA_CERT_NAME=${CA_NAME}-$(echo $DOMAIN | tr -s . -)-${CA_PORT}.pem
-
+  if [ "${CLUSTER_RUNTIME}" == "k8s" ]; then
+    CA_CERT_NAME=localhost-8443.pem
+  else
+    CA_CERT_NAME=${CA_NAME}-$(echo $DOMAIN | tr -s . -)-${CA_PORT}.pem
+  fi
   create_msp_config_yaml ${CA_NAME} ${CA_CERT_NAME} ${ORG_ADMIN_DIR}/msp
 
   # private keys are hashed by name, but we only support one enrollment.
@@ -165,12 +198,23 @@ function create_channel_org_MSP() {
   mkdir -p ${ORG_MSP_DIR}/tlscacerts
 
   # extract the CA's signing authority from the CA/cainfo response
-  curl -s \
-    --cacert ${TEMP_DIR}/cas/${ca_name}/tlsca-cert.pem \
-    https://${ca_name}.${DOMAIN}:${NGINX_HTTPS_PORT}/cainfo \
-    | jq -r .result.CAChain \
-    | base64 -d \
-    > ${ORG_MSP_DIR}/cacerts/ca-signcert.pem
+  if [ "${CLUSTER_RUNTIME}" == "k8s" ]; then
+    kubectl -n ${NS} port-forward deployment/${ca_name} 8443:443 > /dev/null 2>&1 & \
+      sleep 10 && curl -s \
+        --cacert ${TEMP_DIR}/cas/${ca_name}/tlsca-cert.pem \
+        https://localhost:8443/cainfo \
+        | jq -r .result.CAChain \
+        | base64 -d > ${ORG_MSP_DIR}/cacerts/ca-signcert.pem
+    sleep 5
+    pkill -f "port-forward"
+  else
+    curl -s \
+      --cacert ${TEMP_DIR}/cas/${ca_name}/tlsca-cert.pem \
+      https://${ca_name}.${DOMAIN}:${NGINX_HTTPS_PORT}/cainfo \
+      | jq -r .result.CAChain \
+      | base64 -d \
+      > ${ORG_MSP_DIR}/cacerts/ca-signcert.pem
+  fi
 
   # extract the CA's TLS CA certificate from the cert-manager secret
   kubectl -n $ns get secret ${ca_name}-tls-cert -o json \
@@ -233,13 +277,26 @@ function join_channel_orderer() {
 
   # The client certificate presented in this case is the admin user's enrollment key.  This is a stronger assertion
   # of identity than the Docker Compose network, which transmits the orderer node's TLS key pair directly
-  osnadmin channel join \
-    --orderer-address ${org}-${orderer}-admin.${DOMAIN}:${NGINX_HTTPS_PORT} \
-    --ca-file         ${TEMP_DIR}/channel-msp/ordererOrganizations/${org}/orderers/${org}-${orderer}/tls/signcerts/tls-cert.pem \
-    --client-cert     ${TEMP_DIR}/enrollments/${org}/users/${org}admin/msp/signcerts/cert.pem \
-    --client-key      ${TEMP_DIR}/enrollments/${org}/users/${org}admin/msp/keystore/key.pem \
-    --channelID       ${CHANNEL_NAME} \
-    --config-block    ${TEMP_DIR}/genesis_block.pb
+  if [ "${CLUSTER_RUNTIME}" == "k8s" ]; then
+    kubectl -n ${NS} port-forward deployment/${org}-${orderer} 8443:9443 > /dev/null 2>&1 & \
+      sleep 10 && osnadmin channel join \
+      --orderer-address localhost:8443 \
+      --ca-file         ${TEMP_DIR}/channel-msp/ordererOrganizations/${org}/orderers/${org}-${orderer}/tls/signcerts/tls-cert.pem \
+      --client-cert     ${TEMP_DIR}/enrollments/${org}/users/${org}admin/msp/signcerts/cert.pem \
+      --client-key      ${TEMP_DIR}/enrollments/${org}/users/${org}admin/msp/keystore/key.pem \
+      --channelID       ${CHANNEL_NAME} \
+      --config-block    ${TEMP_DIR}/genesis_block.pb
+    sleep 5 
+    pkill -f "port-forward"
+  else 
+    osnadmin channel join \
+      --orderer-address ${org}-${orderer}-admin.${DOMAIN}:${NGINX_HTTPS_PORT} \
+      --ca-file         ${TEMP_DIR}/channel-msp/ordererOrganizations/${org}/orderers/${org}-${orderer}/tls/signcerts/tls-cert.pem \
+      --client-cert     ${TEMP_DIR}/enrollments/${org}/users/${org}admin/msp/signcerts/cert.pem \
+      --client-key      ${TEMP_DIR}/enrollments/${org}/users/${org}admin/msp/keystore/key.pem \
+      --channelID       ${CHANNEL_NAME} \
+      --config-block    ${TEMP_DIR}/genesis_block.pb
+  fi
 }
 
 function join_channel_peers() {
@@ -263,10 +320,24 @@ function join_channel_peer() {
 
   export_peer_context $org $peer
 
-  peer channel join \
-    --blockpath   ${TEMP_DIR}/genesis_block.pb \
-    --orderer     org0-orderer1.${DOMAIN} \
-    --connTimeout ${ORDERER_TIMEOUT} \
-    --tls         \
-    --cafile      ${TEMP_DIR}/channel-msp/ordererOrganizations/org0/orderers/org0-orderer1/tls/signcerts/tls-cert.pem
+  kubectl -n ${NS} port-forward deployment/org1-$peer 7051:7051 > /dev/null 2>&1 &
+
+  if [ "${CLUSTER_RUNTIME}" == "k8s" ]; then
+    kubectl -n ${NS} port-forward deployment/org0-orderer1 8443:6050 > /dev/null 2>&1 & \
+      sleep 10 &&  peer channel join \
+      --blockpath   ${TEMP_DIR}/genesis_block.pb \
+      --orderer     localhost:8443 \
+      --connTimeout ${ORDERER_TIMEOUT} \
+      --tls         \
+      --cafile      ${TEMP_DIR}/channel-msp/ordererOrganizations/org0/orderers/org0-orderer1/tls/signcerts/tls-cert.pem
+    sleep 5
+    pkill -f "port-forward"
+  else 
+    peer channel join \
+      --blockpath   ${TEMP_DIR}/genesis_block.pb \
+      --orderer     org0-orderer1.${DOMAIN} \
+      --connTimeout ${ORDERER_TIMEOUT} \
+      --tls         \
+      --cafile      ${TEMP_DIR}/channel-msp/ordererOrganizations/org0/orderers/org0-orderer1/tls/signcerts/tls-cert.pem
+  fi
 }

@@ -82,7 +82,8 @@ In k8s terms:
 - The blockchain is contained within a single Kubernetes `Cluster`.
 - Blockchain services (nodes, orderers, chaincode, etc.) reside within a single `Namespace`.
 - Each organization maintains a distinct, independent `PersistentVolumeClaim` for TLS certificates,
-  local MSP, private data, and transaction ledgers.
+  local MSP, private data, and transaction ledgers. Some vendores does not support sharing PVCs between pods. For example, in DigitalOcean, you need to configure a nfs-server to support ReadWriteMany Volume Claims. See: https://www.digitalocean.com/community/tutorials/how-to-set-up-readwritemany-rwx-persistent-volumes-with-nfs-on-digitalocean-kubernetes-pt
+
 - Smart Contracts rely exclusively on the [Chaincode-as-a-Service](https://hyperledger-fabric.readthedocs.io/en/latest/cc_service.html) and [External Builder](https://hyperledger-fabric.readthedocs.io/en/latest/cc_launcher.html)
   patterns, running in the cluster as Kube `Deployments` with companion `Services`.
 - An HTTP(s) `Ingress` and companion gateway application is required for external access to the blockchain.
@@ -190,8 +191,7 @@ In order to expose a dynamic set of DNS host aliases matching the Nginx ingress 
 employs the public DNS wildcard domain `*.localho.st` to resolve host and subdomains to the local loopback 
 address 127.0.0.1.  
 
-Using this DNS wildcard alias means that all ingress points bound to the *.localho.st domain will resolve to your 
-local host, conveniently routing traffic into the KIND cluster on ports :80 and :443. 
+Using this DNS wildcard alias means that all ingress points bound to the *.localho.st domain will resolve to your local host, conveniently routing traffic into the KIND cluster on ports :80 and :443. 
 
 To override the *.localho.st network ingress domain (for example in cloud-based environments supporting a DNS 
 wildcard resolver) set the `NETWORK_DOMAIN` environment variable before invoking `./network` 
