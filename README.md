@@ -72,6 +72,24 @@ Limpar o cluster:
 ./network cluster clean
 ```
 
+Conectando com a aplicação:
+
+ver exemplo: application-deployment.yaml
+
+Configurar as variaveis para geração dos arquivos:
+
+```shell
+ export CHAINCODE_NAME=NOME_CHAINCODE
+```
+
+Exemplo: `export CHAINCODE_NAME=asset-transfer-basic`
+
+```shell
+ ./network application
+```
+
+Os arquivos de conexão serão gerados na pasta /build/application/gateways/ (Connection profile) e /build/application/wallet (identities para conexão com fabric).
+
 ## [Detailed Guides](docs/README.md)
 
 - [Working with Kubernetes](docs/KUBERNETES.md)

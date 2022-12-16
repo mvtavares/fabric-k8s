@@ -11,18 +11,19 @@ function app_one_line_pem {
 
 function app_json_ccp {
   local ORG=$1
-  local PP=$(one_line_pem $2)
-  local CP=$(one_line_pem $3)
+  local PP=$(app_one_line_pem $2)
+  local CP=$(app_one_line_pem $3)
   sed -e "s/\${ORG}/$ORG/" \
       -e "s#\${PEERPEM}#$PP#" \
       -e "s#\${CAPEM}#$CP#" \
+      -e "s#\${NS}#$NS#" \
       scripts/ccp-template.json
 }
 
 function app_id {
   local MSP=$1
-  local CERT=$(one_line_pem $2)
-  local PK=$(one_line_pem $3)
+  local CERT=$(app_one_line_pem $2)
+  local PK=$(app_one_line_pem $3)
 
   sed -e "s#\${CERTIFICATE}#$CERT#" \
       -e "s#\${PRIVATE_KEY}#$PK#" \
@@ -36,13 +37,15 @@ function construct_application_configmap() {
   ENROLLMENT_DIR=${TEMP_DIR}/enrollments
   CHANNEL_MSP_DIR=${TEMP_DIR}/channel-msp
 
+  echo $TEMP_DIR
+  
   mkdir -p build/application/wallet
   mkdir -p build/application/gateways
 
   local peer_pem=$CHANNEL_MSP_DIR/peerOrganizations/org1/msp/tlscacerts/tlsca-signcert.pem
   local ca_pem=$CHANNEL_MSP_DIR/peerOrganizations/org1/msp/cacerts/ca-signcert.pem
 
-  echo "$(json_ccp 1 $peer_pem $ca_pem)" > build/application/gateways/org1_ccp.json
+  echo "$(app_json_ccp 1 $peer_pem $ca_pem)" > build/application/gateways/org1_ccp.json
 
   pop_fn
 
