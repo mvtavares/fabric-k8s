@@ -19,7 +19,8 @@ spec:
     name: root-tls-cert-issuer
     kind: Issuer
     group: cert-manager.io
-
+  duration: 43800h # 90d
+  renewBefore: 360h # 15d
 ---
 apiVersion: cert-manager.io/v1
 kind: Issuer

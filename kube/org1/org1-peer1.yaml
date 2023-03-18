@@ -26,7 +26,8 @@ spec:
   secretName: org1-peer1-tls-cert
   issuerRef:
     name: org1-tls-cert-issuer
-
+  duration: 43800h # 90d
+  renewBefore: 360h # 15d
 ---
 apiVersion: v1
 kind: ConfigMap

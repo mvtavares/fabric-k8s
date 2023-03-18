@@ -54,7 +54,7 @@ Implantar o [basic-asset-transfer](../asset-transfer-basic) smart contract (chai
 Initializar e consultar o chaincode:
 ```shell
 ./network chaincode invoke asset-transfer-basic '{"Args":["InitLedger"]}'
-./network chaincode query  asset-transfer-basic '{"Args":["ReadAsset","asset1"]}'
+./network chaincode query asset-transfer-basic '{"Args":["ReadAsset","asset1"]}'
 ```
 
 Terminar a rede: 
@@ -96,3 +96,26 @@ Os arquivos de conexão serão gerados na pasta /build/application/gateways/ (Co
 - [Launching the Network](docs/NETWORK.md)
 - [Working with Channels](docs/CHANNELS.md)
 - [Working with Chaincode](docs/CHAINCODE.md)
+
+Checando a expiração dos certificados:
+
+```shell
+kubectl get certificates -n liberty-dlt -o wide
+
+NAME                     READY   SECRET                        ISSUER                 STATUS                                          AGE
+org0-ca-tls-cert         True    org0-ca-tls-cert              org0-tls-cert-issuer   Certificate is up to date and has not expired   30m
+org0-orderer1-tls-cert   True    org0-orderer1-tls-cert        org0-tls-cert-issuer   Certificate is up to date and has not expired   29m
+org0-orderer2-tls-cert   True    org0-orderer2-tls-cert        org0-tls-cert-issuer   Certificate is up to date and has not expired   29m
+org0-orderer3-tls-cert   True    org0-orderer3-tls-cert        org0-tls-cert-issuer   Certificate is up to date and has not expired   29m
+org0-tls-cert-issuer     True    org0-tls-cert-issuer-secret   root-tls-cert-issuer   Certificate is up to date and has not expired   30m
+org1-ca-tls-cert         True    org1-ca-tls-cert              org1-tls-cert-issuer   Certificate is up to date and has not expired   30m
+org1-peer1-tls-cert      True    org1-peer1-tls-cert           org1-tls-cert-issuer   Certificate is up to date and has not expired   29m
+org1-peer2-tls-cert      True    org1-peer2-tls-cert           org1-tls-cert-issuer   Certificate is up to date and has not expired   29m
+org1-tls-cert-issuer     True    org1-tls-cert-issuer-secret   root-tls-cert-issuer   Certificate is up to date and has not expired   30m
+```
+
+Para exibir a data de início e fim dos certificados, é necessário descrevê-los conforme abaixo:
+
+```shell
+kubectl get certificate -n liberty-dlt -ojsonpath="{range .items[*]}{.metadata.name} not before: {.status.notBefore} not after: {.status.notAfter}{'\n'}{end}"
+```

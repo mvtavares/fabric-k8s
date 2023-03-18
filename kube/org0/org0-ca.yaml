@@ -23,7 +23,8 @@ spec:
   secretName: org0-ca-tls-cert
   issuerRef:
     name: org0-tls-cert-issuer
-
+  duration: 43800h # 90d
+  renewBefore: 360h # 15d
 ---
 apiVersion: apps/v1
 kind: Deployment
